@@ -16,15 +16,15 @@ int snakeHeadColor = 0x7bef; //snake head color (default is gray)
 int wayHintColor = BLUE; //color of hints showing available ways to go
 int foodColor = GREEN; //color of food
 
-//Advanced settings
-int blockSize = 15; //DO NOT CHANGE, game is not able to handle other values
+//Advanced settings       DO NOT CHANGE, game is not able to run properly on other values
+int blockSize = 15;
 int screenWidth = 135;
 int screenHeight = 240;
-
-//ingame var., different values won't change gameplay much
-int direction = 0; //snake facing direction (0 - up, 1 - left, 2 - down, 3 - right)
-int startPointX = 68;
+int startPointX = 60;
 int startPointY = 120;
+
+//ingame start var., different values won't change gameplay much
+int startDirection = 0; //snake facing direction (0 - up, 1 - right, 2 - down, 3 - left)
 
 
 ////////////////////////////////////////////////////
@@ -90,14 +90,15 @@ class wayHintPre: public block {
 
 
 //game declarations
-snakeHeadPre* snakeHead = NULL;
-LinkedList<snakeBodyPre>* snakeBodyList = NULL;
-wayHintPre* wayHintList[2] = {NULL, NULL};
-foodPre* food = NULL;
-int score = NULL; //num of food eated
-bool isAlive = NULL;
-bool addBodyPart = NULL;
-snakeBodyPre* bodyPreset = NULL;
+snakeHeadPre* snakeHead = new snakeHeadPre(0, 0);
+LinkedList<snakeBodyPre>* snakeBodyList = new LinkedList<snakeBodyPre>();
+wayHintPre* wayHintList[2] = { new wayHintPre(0, 0), new wayHintPre(0, 0)};
+foodPre* food = new foodPre(0, 0);
+int score = 0; //num of food eated
+bool isAlive = false;
+bool addBodyPart = false;
+snakeBodyPre* bodyPreset = new snakeBodyPre(0, 0);
+int direction = 0; //snake facing direction (0 - up, 1 - right, 2 - down, 3 - left)
 
 //game functions
 void start(){ // sets|resets all values
@@ -129,14 +130,15 @@ void start(){ // sets|resets all values
   //food
   if(food != NULL)
     delete(food);
+  direction = startDirection;
 }
 
 void Spawn_food(){ //it just changes food position
   bool canPlace = false;
   do
   {
-    food->x = random(0, screenWidth);
-    food->y = random(0, screenWidth);
+    food->x = random(0, screenWidth / blockSize)*blockSize;
+    food->y = random(0, screenHeight / blockSize)*blockSize;
 
     if(food->x != snakeHead->x || food->y != snakeHead->y){
       for(int bodyPart = snakeBodyList->size()-1; bodyPart <=0; bodyPart--){
@@ -151,6 +153,125 @@ void Spawn_food(){ //it just changes food position
   }while (!canPlace);
 }
 
+void Move_body(){
+  for (int part = snakeBodyList->size()-1; part >= 0; part--)
+  {
+    switch (part)
+    {
+    case 0:
+      snakeBodyList->set(part, snakeBodyPre(snakeHead->x, snakeHead->y));
+
+      break;
+    default:
+      snakeBodyList->set(part, snakeBodyPre(snakeBodyList->get(part-1).x, snakeBodyList->get(part-1).y));
+      break;
+    }
+  }
+}
+
+void Move_head(){
+  switch (direction) //0 - up, 1 - right, 2 - down, 3 - left
+  {
+  case 0:
+    snakeHead->y-=blockSize;
+    break;
+  case 1:
+    snakeHead->x+=blockSize;
+    break;
+  case 2:
+    snakeHead->y+=blockSize;
+    break;
+  case 3:
+    snakeHead->x-=blockSize;
+    break;
+  }
+
+  if(snakeHead->x > screenWidth) //if snake is behind "wall", it will be moved on other side of screen
+    snakeHead->x = 0;
+  else if(snakeHead->x < 0){
+    snakeHead->x = screenWidth;
+  }
+  else if(snakeHead->y > screenHeight)
+    snakeHead->y = 0;
+  else if (snakeHead->y < 0){
+    snakeHead->y = screenHeight;
+  }
+}
+
+void Move_wayHint(){
+  switch (direction) //0 - up, 1 - right, 2 - down, 3 - left
+  {
+  case 0:
+    wayHintList[0]->x = snakeHead->x+blockSize;
+    wayHintList[1]->x = snakeHead->x-blockSize;
+
+    wayHintList[0]->y = snakeHead->y;
+    wayHintList[1]->y = snakeHead->y;
+    break;
+  case 1:
+    wayHintList[0]->y = snakeHead->y+blockSize;
+    wayHintList[1]->y = snakeHead->y-blockSize;
+
+    wayHintList[0]->x = snakeHead->x;
+    wayHintList[1]->x = snakeHead->x;
+    break;
+  case 2:
+    wayHintList[0]->x = snakeHead->x+blockSize;
+    wayHintList[1]->x = snakeHead->x-blockSize;
+
+    wayHintList[0]->y = snakeHead->y;
+    wayHintList[1]->y = snakeHead->y;
+    break;
+  case 3:
+    wayHintList[0]->y = snakeHead->y+blockSize;
+    wayHintList[1]->y = snakeHead->y-blockSize;
+
+    wayHintList[0]->x = snakeHead->x;
+    wayHintList[1]->x = snakeHead->x;
+    break;
+  }
+}
+
+void Display_game(){ //thing lower will overdraw higher stuff
+  m5.Lcd.fillScreen(background);
+  //food
+  m5.Lcd.fillRect(food->x, food->y, food->size, food->size, food->color);
+  //head
+  m5.Lcd.fillRect(snakeHead->x, snakeHead->y, snakeHead->size, snakeHead->size, snakeHead->color);
+  //wayHint
+  m5.Lcd.fillRect(wayHintList[0]->x, wayHintList[0]->y, wayHintList[0]->size, wayHintList[0]->size, wayHintList[0]->color);
+  m5.Lcd.fillRect(wayHintList[1]->x, wayHintList[1]->y, wayHintList[1]->size, wayHintList[1]->size, wayHintList[1]->color);
+  //body
+  for (int part = snakeBodyList->size()-1; part>=0; part--)
+  {
+    m5.Lcd.fillRect(snakeBodyList->get(part).x, snakeBodyList->get(part).y, snakeBodyList->get(part).size, snakeBodyList->get(part).size, snakeBodyList->get(part).color);
+  }
+}
+
+void Is_head_on_body(){
+  for (int part = snakeBodyList->size()-1; part>=0; part--)
+  {
+    if (snakeBodyList->get(part).x == snakeHead->x && snakeBodyList->get(part).y == snakeHead->y)
+    {
+      isAlive = false;
+      break;
+    }
+  }
+}
+
+void Change_direction(bool way){ //f = left, t = right  |  0 - up, 1 - right, 2 - down, 3 - left
+  if(!way){ //left
+    direction--;
+    if(direction<0)
+      direction = 3;
+  }
+  else{ //right
+    direction++;
+    if(direction>3)
+      direction = 0;
+  }
+}
+
 //game
 void loop() {
   start();
@@ -163,20 +284,35 @@ void loop() {
       Spawn_food();
     }
 
-    //move body
+    Move_head();
+    Move_body();
 
-    if(addBodyPart == true)
+    if(addBodyPart == true) //create snake body if food eated
     {
       snakeBodyList->add(snakeBodyPre(bodyPreset->x, bodyPreset->y));
       delete(bodyPreset);
       addBodyPart = false;
     }
     
-    //move head
-    //move wayHint
-    //display game
-    //check if head is not on body
-    //wait and capture data for another cicle
+    Move_wayHint();
+
+    Display_game();
+    Is_head_on_body();
+   
+    for (int cicle = speed; cicle > 0; cicle--) //get user input and wait for gameSpeed delay
+    {
+      if (m5.BtnA.isPressed()) //turn left
+      {
+        Change_direction(false);
+      }
+      if (m5.BtnB.isPressed()) //turn right
+      {
+        Change_direction(true);
+      }
+
+      delay(1);
+    }
+    
   }
 
   m5.Lcd.println("game over"); //game over
