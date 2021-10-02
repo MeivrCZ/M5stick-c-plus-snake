@@ -3,12 +3,14 @@
 
 void setup() {
   M5.begin();
+  Serial.begin(38400);
   M5.Lcd.begin();
-  M5.Lcd.println("had");
+  delay(1000);
+  Serial.println("snake begin");
 }
 
 //basic game settings
-int speed = 120; //game cycle speed (100 = 10 c/s, 40 = 25 c/s)
+int speed = 2; //200 miliseconds
 
 int background = BLACK; //background
 int snakeBodyColor = WHITE; //snake body part
@@ -103,16 +105,19 @@ int direction = 0; //snake facing direction (0 - up, 1 - right, 2 - down, 3 - le
 
 //game functions
 void start(){ // sets|resets all values
+  Serial.println("start");
   //snake head
   if(snakeHead != NULL)
     delete(snakeHead);
   snakeHead = new snakeHeadPre(startPointX, startPointY);
+  Serial.println("start - snake head");
   //snake body
   for (int part = 0; part <= numOfBlocks-1; part++)
   {
     if (snakeBodyList[part] != NULL)
       delete(snakeBodyList[part]);
   }
+  Serial.println("start - snake body");
   //wayhint
   if (wayHintList[0] != NULL)//left
     delete(wayHintList[0]);
@@ -120,23 +125,32 @@ void start(){ // sets|resets all values
   if (wayHintList[1] != NULL)//right
     delete(wayHintList[1]);
   wayHintList[1] = new wayHintPre(startPointX, startPointY);
+  Serial.println("start - wayHint");
   //food
   if(food != NULL)
     delete(food);
   food = new foodPre(startPointX, startPointY);
+  Serial.println("start - food");
   //score
   score = 0;
+  Serial.println("start - score");
   //isAlive
   isAlive = true;
+  Serial.println("start - isAlive");
   //addBodyPart
   addBodyPart = false;
-  //food
-  if(food != NULL)
-    delete(food);
+  Serial.println("start - bodypart");
+  //bodyPreset
+  if(bodyPreset != NULL)
+    delete(bodyPreset);
+  Serial.println("satrt - bodyPreset");
+  //direction
   direction = startDirection;
+  Serial.println("start - direction");
 }
 
 void Spawn_food(){ //it just changes food position
+  Serial.println("Spawn_food");
   bool canPlace = false;
   do
   {
@@ -144,19 +158,26 @@ void Spawn_food(){ //it just changes food position
     food->y = random(0, screenHeight / blockSize)*blockSize;
 
     if(food->x != snakeHead->x || food->y != snakeHead->y){
-      for(int bodyPart = numOfBlocks-1; bodyPart <=0; bodyPart--){
+      Serial.println("Spawn_food - food is not on head");
+      for(int bodyPart = numOfBlocks-1; bodyPart >=0; bodyPart--){
         if (snakeBodyList[bodyPart] != NULL)
         {
           if (food->x == snakeBodyList[bodyPart]->x && food->y == snakeBodyList[bodyPart]->y)
           {
             canPlace = false;
+            Serial.println("Spawn_food - cannot place");
             break;
           }
-          canPlace = true;
         }
+        canPlace = true;
+        //Serial.println("Spawn_food - can place");
       }
     }
+    else{
+      Serial.println("Spawn_food - food is on head");
+    }
   }while (!canPlace);
+  Serial.println("Spawn_food - placed");
 }
 
 void Move_body(){
@@ -178,6 +199,7 @@ void Move_body(){
       }
     }
   }
+  Serial.println("Move_body - body moved");
 }
 
 void Move_head(){
@@ -207,6 +229,7 @@ void Move_head(){
   else if (snakeHead->y < 0){
     snakeHead->y = screenHeight;
   }
+  Serial.println("Move_head - head moved");
 }
 
 void Move_wayHint(){
@@ -241,17 +264,23 @@ void Move_wayHint(){
     wayHintList[1]->x = snakeHead->x;
     break;
   }
+  Serial.println("Move_wayHint - hints moved");
 }
 
 void Display_game(){ //thing lower will overdraw higher stuff
+  Serial.println("Display_game");
   M5.Lcd.fillScreen(background);
+  Serial.println("Display_game - background");
   //food
   M5.Lcd.fillRect(food->x, food->y, food->size, food->size, food->color);
+  Serial.println("Display_game - food");
   //head
   M5.Lcd.fillRect(snakeHead->x, snakeHead->y, snakeHead->size, snakeHead->size, snakeHead->color);
+  Serial.println("Display_game - head");
   //wayHint
   M5.Lcd.fillRect(wayHintList[0]->x, wayHintList[0]->y, wayHintList[0]->size, wayHintList[0]->size, wayHintList[0]->color);
   M5.Lcd.fillRect(wayHintList[1]->x, wayHintList[1]->y, wayHintList[1]->size, wayHintList[1]->size, wayHintList[1]->color);
+  Serial.println("Display_game - hint");
   //body
   for (int part = numOfBlocks-1; part>=0; part--)
   {
@@ -259,15 +288,20 @@ void Display_game(){ //thing lower will overdraw higher stuff
       M5.Lcd.fillRect(snakeBodyList[part]->x, snakeBodyList[part]->y, snakeBodyList[part]->size, snakeBodyList[part]->size, snakeBodyList[part]->color);
     }
   }
+  Serial.println("Display_game - body");
 }
 
 void Is_head_on_body(){
   for (int part = numOfBlocks-1; part>=0; part--)
   {
-    if (snakeBodyList[part]->x == snakeHead->x && snakeBodyList[part]->y == snakeHead->y)
+    if(snakeBodyList[part] != NULL)
     {
-      isAlive = false;
-      break;
+      if (snakeBodyList[part]->x == snakeHead->x && snakeBodyList[part]->y == snakeHead->y)
+      {
+        isAlive = false;
+        Serial.println("Is_head_on_body - head is on body");
+        break;
+      }
     }
   }
 }
@@ -277,15 +311,18 @@ void Change_direction(bool way){ //f = left, t = right  |  0 - up, 1 - right, 2 
     direction--;
     if(direction<0)
       direction = 3;
+    Serial.println("Change_direction - turned left");
   }
   else{ //right
     direction++;
     if(direction>3)
       direction = 0;
+    Serial.println("Change_direction - turned right");
   }
 }
 
 void Add_snake_body(){ //create snake body if food eated
+  Serial.println("Add_snake_body");
   for (int part = 0; addBodyPart; part++)
   {
     if (snakeBodyList[part] == NULL)
@@ -293,6 +330,25 @@ void Add_snake_body(){ //create snake body if food eated
       snakeBodyList[part] = new snakeBodyPre(bodyPreset->x, bodyPreset->y);
       delete(bodyPreset);
       addBodyPart = false;
+      Serial.println("Add_snake_body - body added");
+    }
+  }
+}
+
+void Make_preset(){
+  if (snakeBodyList[0] == NULL) //if snakeBodyList is empety, it will get data from snakeHead
+  {
+    bodyPreset = new snakeBodyPre(snakeHead->x, snakeHead->y);
+  }
+  else{ //get data from last body instance in list
+    bool presetIsMade = false;
+    for(int part = numOfBlocks-1; !presetIsMade; part--){
+      if (snakeBodyList[part] != NULL)
+      {
+        bodyPreset = new snakeBodyPre(snakeBodyList[part]->x, snakeBodyList[part]->y);
+        presetIsMade = true;
+        Serial.println("Make_preset - preset was made");
+      }
     }
   }
 }
@@ -300,45 +356,60 @@ void Add_snake_body(){ //create snake body if food eated
 //game
 void loop() {
   start();
+  Serial.println("loop - start");
   while (isAlive) //SNAKE
   {
+    Serial.println("loop - snake is alive");
     if(food->x == snakeHead->x && food->y == snakeHead->y){
+      Serial.println("loop - food eaten - if works");
       score++;
       addBodyPart = true;
-      bodyPreset = new snakeBodyPre(snakeBodyList[numOfBlocks-1]->x, snakeBodyList[numOfBlocks-1]->y);
+      Make_preset();
+      Serial.println("loop - food eaten - new bodyPreset");
       Spawn_food();
+      Serial.println("loop - food eaten - food spawned");
     }
+    Serial.println("loop - food");
 
-    Move_head();
     Move_body();
+    Move_head();
+    Serial.println("loop - head and body moved");
 
     Add_snake_body();
+    Serial.println("loop - add_body");
     
     Move_wayHint();
+    Serial.println("loop - move hint");
 
     Display_game();
+    Serial.println("loop - display");
     Is_head_on_body();
+    Serial.println("loop - check if head is on body");
    
     for (int cicle = speed; cicle > 0; cicle--) //get user input and wait for gameSpeed delay
     {
-      if (M5.BtnA.isPressed()) //turn left
+      if (M5.BtnA.read() == 1) //turn left
       {
         Change_direction(false);
+        Serial.println("loop - btnA pressed");
       }
-      if (M5.BtnB.isPressed()) //turn right
+      if (M5.BtnB.read() == 1) //turn right
       {
         Change_direction(true);
+        Serial.println("loop - btnB pressed");
       }
 
-      delay(1);
+      delay(100);
+      Serial.println("loop - input check cicle passed");
     }
-    
+    Serial.println("loop - end of cicle");
   }
-
+  Serial.println("loop - snake is dead");
   M5.Lcd.fillScreen(background); //game over
   M5.Lcd.println("game over"); 
   M5.Lcd.println(score);
   delay(1000);
   M5.Lcd.println("press BtnA to restart");
-  while(!m5.BtnA.isPressed()){}
+  while(!m5.BtnA.read() == 1){}
+  Serial.println("loop - game over - btnA pressed in");
 }
