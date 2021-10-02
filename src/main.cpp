@@ -10,7 +10,7 @@ void setup() {
 }
 
 //basic game settings
-int speed = 2; //200 miliseconds
+int speed = 15; //100 + (10*speed) miliseconds
 
 int background = BLACK; //background
 int snakeBodyColor = WHITE; //snake body part
@@ -20,8 +20,8 @@ int foodColor = GREEN; //color of food
 
 //Advanced settings       DO NOT CHANGE, game is not able to run properly on other values
 int blockSize = 15;
-int screenWidth = 135;
-int screenHeight = 240;
+int screenWidth = 120; //135
+int screenHeight = 225; //240
 int startPointX = 60;
 int startPointY = 120;
 const int numOfBlocks = 144; // (sHeight/bSize)*(sWidth/bSize) 
@@ -93,42 +93,53 @@ class wayHintPre: public block {
 
 
 //game declarations
-snakeHeadPre* snakeHead;
+snakeHeadPre* snakeHead = NULL;
 snakeBodyPre* snakeBodyList[numOfBlocks];
 wayHintPre* wayHintList[2];
-foodPre* food;
+foodPre* food = NULL;
 int score = 0; //num of food eated
 bool isAlive = false;
 bool addBodyPart = false;
-snakeBodyPre* bodyPreset;
+snakeBodyPre* bodyPreset = NULL;
 int direction = 0; //snake facing direction (0 - up, 1 - right, 2 - down, 3 - left)
+int turn = 0; //0 - do not turn, 1 - left, 2 right
 
 //game functions
 void start(){ // sets|resets all values
   Serial.println("start");
   //snake head
-  if(snakeHead != NULL)
+  if(snakeHead != NULL){
     delete(snakeHead);
+    snakeHead = NULL;
+    }
   snakeHead = new snakeHeadPre(startPointX, startPointY);
   Serial.println("start - snake head");
   //snake body
   for (int part = 0; part <= numOfBlocks-1; part++)
   {
-    if (snakeBodyList[part] != NULL)
+    if (snakeBodyList[part] != NULL){
       delete(snakeBodyList[part]);
+      snakeBodyList[part] = NULL;
+    }
   }
   Serial.println("start - snake body");
   //wayhint
-  if (wayHintList[0] != NULL)//left
+  if (wayHintList[0] != NULL){//left
     delete(wayHintList[0]);
+    wayHintList[0] = NULL;
+  }
   wayHintList[0] = new wayHintPre(startPointX, startPointY);
-  if (wayHintList[1] != NULL)//right
+  if (wayHintList[1] != 0){//right
     delete(wayHintList[1]);
+    wayHintList[1] = NULL;
+  }
   wayHintList[1] = new wayHintPre(startPointX, startPointY);
   Serial.println("start - wayHint");
   //food
-  if(food != NULL)
+  if(food != NULL){
     delete(food);
+    food = NULL;
+  }
   food = new foodPre(startPointX, startPointY);
   Serial.println("start - food");
   //score
@@ -141,12 +152,17 @@ void start(){ // sets|resets all values
   addBodyPart = false;
   Serial.println("start - bodypart");
   //bodyPreset
-  if(bodyPreset != NULL)
+  if(bodyPreset != NULL){
     delete(bodyPreset);
+    bodyPreset = NULL;
+  }
   Serial.println("satrt - bodyPreset");
   //direction
   direction = startDirection;
   Serial.println("start - direction");
+  //turn
+  turn = 0;
+  Serial.println("start - turn");
 }
 
 void Spawn_food(){ //it just changes food position
@@ -306,18 +322,22 @@ void Is_head_on_body(){
   }
 }
 
-void Change_direction(bool way){ //f = left, t = right  |  0 - up, 1 - right, 2 - down, 3 - left
-  if(!way){ //left
+void Change_direction(){ //0 - up, 1 - right, 2 - down, 3 - left
+  switch (turn)  //0 - do not turn, 1 - left, 2 right
+  {
+  case 1: 
     direction--;
     if(direction<0)
       direction = 3;
     Serial.println("Change_direction - turned left");
-  }
-  else{ //right
+    break;
+
+  case 2:
     direction++;
     if(direction>3)
       direction = 0;
     Serial.println("Change_direction - turned right");
+    break;
   }
 }
 
@@ -329,6 +349,7 @@ void Add_snake_body(){ //create snake body if food eated
     {
       snakeBodyList[part] = new snakeBodyPre(bodyPreset->x, bodyPreset->y);
       delete(bodyPreset);
+      bodyPreset = NULL;
       addBodyPart = false;
       Serial.println("Add_snake_body - body added");
     }
@@ -385,23 +406,27 @@ void loop() {
     Serial.println("loop - display");
     Is_head_on_body();
     Serial.println("loop - check if head is on body");
-   
-    for (int cicle = speed; cicle > 0; cicle--) //get user input and wait for gameSpeed delay
+
+   //get user input and wait for gameSpeed delay
+    delay(100); //time to unpress buttons
+    for (int cicle = speed; cicle > 0; cicle--) 
     {
       if (M5.BtnA.read() == 1) //turn left
       {
-        Change_direction(false);
+        turn = 1;
         Serial.println("loop - btnA pressed");
       }
       if (M5.BtnB.read() == 1) //turn right
       {
-        Change_direction(true);
+        turn = 2;
         Serial.println("loop - btnB pressed");
       }
-
-      delay(100);
-      Serial.println("loop - input check cicle passed");
+      delay(10);
+      //Serial.println("loop - input check cicle passed");
     }
+    Change_direction();
+    turn = 0;
+
     Serial.println("loop - end of cicle");
   }
   Serial.println("loop - snake is dead");
@@ -410,6 +435,6 @@ void loop() {
   M5.Lcd.println(score);
   delay(1000);
   M5.Lcd.println("press BtnA to restart");
-  while(!m5.BtnA.read() == 1){}
+  while(M5.BtnA.read() != 1){}
   Serial.println("loop - game over - btnA pressed in");
 }
