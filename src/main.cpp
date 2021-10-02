@@ -5,6 +5,7 @@ void setup() {
   M5.begin();
   Serial.begin(38400);
   M5.Lcd.begin();
+  M5.Lcd.setTextSize(3);
   delay(1000);
   Serial.println("snake begin");
 }
@@ -431,10 +432,19 @@ void loop() {
   }
   Serial.println("loop - snake is dead");
   M5.Lcd.fillScreen(background); //game over
-  M5.Lcd.println("game over"); 
-  M5.Lcd.println(score);
+  M5.Lcd.setCursor(33, 40);
+  M5.Lcd.print("game");
+  M5.Lcd.setCursor(33, 70);
+  M5.Lcd.print("over");
+  M5.Lcd.setCursor(50, 100);
+  M5.Lcd.print(score);
   delay(1000);
-  M5.Lcd.println("press BtnA to restart");
+  M5.Lcd.setCursor(21, 140);
+  M5.Lcd.println("press");
+  M5.Lcd.setCursor(5, 170);
+  M5.Lcd.println("BtnA to");
+  M5.Lcd.setCursor(5, 200);
+  M5.Lcd.println("restart");
   while(M5.BtnA.read() != 1){}
   Serial.println("loop - game over - btnA pressed in");
 }
